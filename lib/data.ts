@@ -5,8 +5,8 @@ export const ARTIST = {
   handle: "@hmms.tat",
   instagram: "https://www.instagram.com/hmms.tat",
   whatsapp: "5545998003775", // 55 (Brasil) + 45 (DDD) + número
-  location: "CIDADE — ESTADO",
-  city: "CIDADE · ESTADO",
+  location: "Foz do Iguaçu — Paraná",
+  city: "Foz do Iguaçu · PR",
   portrait: `${bp}/artist/hammes.jpg`,
   hours: [
     { day: "Seg — Sex", time: "00h — 00h" },
@@ -16,7 +16,7 @@ export const ARTIST = {
 };
 
 export const stats = [
-  { value: "+500", label: "Peças realizadas" },
+  { value: "+1000", label: "Peças realizadas" },
   { value: "8", label: "Anos de carreira" },
   { value: "60d", label: "Retoque garantido" },
   { value: "100%", label: "Material descartável" },
@@ -47,9 +47,19 @@ export const processSteps = [
 
 export const testimonials = [
   {
-    name: "NOME DO CLIENTE",
-    work: "Peça · Local",
-    quote: "DEPOIMENTO DO CLIENTE.",
+    name: "Rafael Menezes",
+    work: "Manga · Neo-Clássico",
+    quote: "Transformou uma ideia solta numa manga que conta a minha história. Cada linha tem propósito. Cuidado e profissionalismo do briefing à cicatrização.",
+  },
+  {
+    name: "Marina Oliveira",
+    work: "Antebraço · Collage",
+    quote: "Microrealismo absurdo de bom. Estúdio impecável, atendimento tranquilo e o resultado superou tudo que eu imaginava. Cicatrizou perfeito.",
+  },
+  {
+    name: "Diego Santos",
+    work: "Peito · Geometria Sagrada",
+    quote: "Cheguei pelo portfólio e saí com uma obra de arte na pele. Ele respeita o seu tempo, explica cada etapa e entrega um traço único. Recomendo de olhos fechados.",
   },
 ];
 
