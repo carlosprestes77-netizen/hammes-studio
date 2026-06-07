@@ -70,7 +70,7 @@ export default function Portfolio() {
             >
               <div
                 className={`relative overflow-hidden ${
-                  item.size === "large" ? "aspect-[3/4]" : item.size === "small" ? "aspect-square" : "aspect-[4/5]"
+                  item.size === "large" ? "aspect-[3/4]" : "aspect-[4/5]"
                 }`}
               >
                 <img
