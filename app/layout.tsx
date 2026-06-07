@@ -22,7 +22,7 @@ const SITE_URL = "https://carlosprestes77-netizen.github.io/hammes-studio";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Hammes — Tatuagens Autorais | CIDADE",
+    default: "Hammes — Tatuagens Autorais | Foz do Iguaçu",
     template: "%s · Hammes Tattoo",
   },
   description:
@@ -60,6 +60,14 @@ const jsonLd = {
   url: SITE_URL,
   founder: { "@type": "Person", name: "Hammes" },
   sameAs: ["https://www.instagram.com/hmms.tat"],
+  telephone: "+5545998003775",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Foz do Iguaçu",
+    addressRegion: "PR",
+    addressCountry: "BR",
+  },
+  areaServed: "Foz do Iguaçu e região",
   priceRange: "$$$",
 };
 

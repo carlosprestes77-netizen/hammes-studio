@@ -38,7 +38,7 @@ export default function Studio() {
               transition={{ delay: 0.4 }}
               className="absolute -bottom-6 -right-4 lg:-right-8 bg-ink text-paper-100 p-6"
             >
-              <p className="font-serif text-3xl text-paper-100 font-bold">+500</p>
+              <p className="font-serif text-3xl text-paper-100 font-bold">+1000</p>
               <p className="text-[9px] tracking-widest text-paper-500 uppercase mt-1">Peças realizadas</p>
             </motion.div>
           </motion.div>

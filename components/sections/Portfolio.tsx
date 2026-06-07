@@ -104,7 +104,7 @@ export default function Portfolio() {
           viewport={{ once: true }}
           className="mt-16 pt-10 border-t border-paper-300 flex items-center justify-between"
         >
-          <p className="text-xs text-ink-faint font-light">Mais de 500 trabalhos realizados</p>
+          <p className="text-xs text-ink-faint font-light">Mais de 1000 trabalhos realizados</p>
           <a
             href={ARTIST.instagram}
             target="_blank"

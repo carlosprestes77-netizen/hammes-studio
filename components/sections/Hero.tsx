@@ -62,7 +62,7 @@ export default function Hero() {
             transition={{ duration: 1, delay: 0.3 }}
             className="text-[9px] tracking-[0.5em] uppercase font-sans font-light text-paper-500 mb-6"
           >
-            Microrealismo · Geometria Sagrada · Santa Catarina
+            Microrealismo · Geometria Sagrada · Foz do Iguaçu
           </motion.p>
 
           <motion.h1
