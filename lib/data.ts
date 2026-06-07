@@ -4,7 +4,7 @@ export const ARTIST = {
   name: "Hammes",
   handle: "@hmms.tat",
   instagram: "https://www.instagram.com/hmms.tat",
-  whatsapp: "WHATSAPP_DO_ARTISTA", // ex: "5548999999999"
+  whatsapp: "5545998003775", // 55 (Brasil) + 45 (DDD) + número
   location: "CIDADE — ESTADO",
   city: "CIDADE · ESTADO",
   portrait: `${bp}/artist/hammes.jpg`,
