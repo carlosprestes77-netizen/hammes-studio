@@ -1,0 +1,20 @@
+{
+  "name": "Hammes Tattoo",
+  "short_name": "Hammes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0c08",
+  "theme_color": "#0f0c08",
+  "icons": [
+    {
+      "src": "https://picsum.photos/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

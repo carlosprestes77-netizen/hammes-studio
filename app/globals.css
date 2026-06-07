@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-playfair: "Playfair Display", serif;
+  --font-raleway: "Raleway", sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #ece6d9;
+    color: #0f0c08;
+    font-family: var(--font-raleway), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #7a5c3840;
+    color: #0f0c08;
+  }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: #ece6d9; }
+  ::-webkit-scrollbar-thumb { background: #aea490; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #7a5c38; }
+}
+
+@layer components {
+  /* Glass navbar — paper with blur */
+  .glass-paper {
+    background: rgba(236, 230, 217, 0.88);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Elegant thin input */
+  .input-minimal {
+    @apply bg-transparent border-0 border-b border-paper-400 rounded-none px-0 py-3 text-ink placeholder-ink-faint focus:outline-none focus:border-gold transition-colors duration-300 text-sm;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply relative inline-flex items-center gap-2 px-8 py-3.5 bg-ink text-paper-100 font-sans font-medium tracking-widest text-[10px] uppercase transition-all duration-300 hover:bg-ink-warm;
+  }
+
+  .btn-outline {
+    @apply relative inline-flex items-center gap-2 px-8 py-3.5 border border-ink text-ink font-sans font-medium tracking-widest text-[10px] uppercase transition-all duration-300 hover:bg-ink hover:text-paper-100;
+  }
+
+  /* Section label */
+  .label-section {
+    @apply text-[10px] tracking-[0.5em] uppercase font-sans font-light text-ink-muted;
+  }
+
+  /* Divider line */
+  .divider {
+    @apply w-12 h-px bg-ink-muted;
+  }
+}
