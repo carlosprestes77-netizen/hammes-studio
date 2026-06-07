@@ -185,7 +185,7 @@ export default function QuoteForm() {
                 )}
 
                 <Field label="Seu nome" name="name" value={form.name} onChange={set("name")} />
-                <Field label="Seu WhatsApp" name="whatsapp" type="tel" value={form.whatsapp} onChange={set("whatsapp")} placeholder="(48) 99999-9999" />
+                <Field label="Seu WhatsApp" name="whatsapp" type="tel" value={form.whatsapp} onChange={set("whatsapp")} placeholder="(45) 99999-9999" />
                 <Textarea label="Descreva sua ideia" name="description" value={form.description} onChange={set("description")} />
 
                 {/* Placement */}
