@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ARTIST } from "@/lib/data";
 
-const HERO_BG = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/portfolio/fortis-fortuna.jpg`;
+const HERO_BG = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/portfolio/dante.jpg`;
 
 export default function Hero() {
   const ref = useRef<HTMLDivElement>(null);

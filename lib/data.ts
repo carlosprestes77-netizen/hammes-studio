@@ -15,15 +15,13 @@ export const ARTIST = {
   ],
 };
 
-// Trust / credibility numbers
 export const stats = [
-  { value: "+000", label: "Peças realizadas" },
-  { value: "0", label: "Anos de carreira" },
+  { value: "+500", label: "Peças realizadas" },
+  { value: "8", label: "Anos de carreira" },
   { value: "60d", label: "Retoque garantido" },
   { value: "100%", label: "Material descartável" },
 ];
 
-// How it works — the client journey, builds trust and sets expectations
 export const processSteps = [
   {
     n: "01",
@@ -47,7 +45,6 @@ export const processSteps = [
   },
 ];
 
-// Social proof
 export const testimonials = [
   {
     name: "NOME DO CLIENTE",
@@ -56,7 +53,6 @@ export const testimonials = [
   },
 ];
 
-// FAQ — reduces friction before booking (deposit, pain, healing, pricing)
 export const faqs = [
   {
     q: "Como funciona o orçamento?",
@@ -92,46 +88,170 @@ export const faqs = [
   },
 ];
 
-export const portfolioItems: {
-  id: number;
-  src: string;
-  alt: string;
-  style: string;
-  placement: string;
-  size: "large" | "medium" | "small";
-  label: string;
-}[] = [
-  // Adicione as fotos do portfólio aqui.
-  // Exemplo:
-  // {
-  //   id: 1,
-  //   src: `${bp}/portfolio/nome-da-foto.jpg`,
-  //   alt: "Descrição da tatuagem",
-  //   style: "Neo-Clássico",
-  //   placement: "Antebraço",
-  //   size: "large",
-  //   label: "TÍTULO",
-  // },
+export const portfolioItems = [
+  {
+    id: 1,
+    src: `${bp}/portfolio/pieta.jpg`,
+    alt: "Pietà — cena clássica com Maria e Cristo no antebraço",
+    style: "Neo-Clássico",
+    placement: "Antebraço",
+    size: "large" as const,
+    label: "PIETÀ",
+  },
+  {
+    id: 2,
+    src: `${bp}/portfolio/sabio.jpg`,
+    alt: "O Sábio — filósofo com livro, geometria e chave no antebraço",
+    style: "Collage",
+    placement: "Antebraço",
+    size: "large" as const,
+    label: "O SÁBIO",
+  },
+  {
+    id: 3,
+    src: `${bp}/portfolio/flamingo.jpg`,
+    alt: "Flamingo — ave com tulipa e geometria no antebraço",
+    style: "Neo-Geométrico",
+    placement: "Antebraço",
+    size: "large" as const,
+    label: "FLAMINGO",
+  },
+  {
+    id: 4,
+    src: `${bp}/portfolio/hierarquia.jpg`,
+    alt: "Hierarquia — manga com anjo, figuras egípcias e escaravelho",
+    style: "Collage",
+    placement: "Manga",
+    size: "large" as const,
+    label: "HIERARQUIA",
+  },
+  {
+    id: 5,
+    src: `${bp}/portfolio/sao-pedro.jpg`,
+    alt: "São Pedro — figura religiosa com chaves e halo no antebraço",
+    style: "Neo-Clássico",
+    placement: "Antebraço",
+    size: "medium" as const,
+    label: "SÃO PEDRO",
+  },
+  {
+    id: 6,
+    src: `${bp}/portfolio/fenrir.jpg`,
+    alt: "Fenrir — lobo em collage com libélula e pássaros no antebraço",
+    style: "Collage",
+    placement: "Antebraço",
+    size: "large" as const,
+    label: "FENRIR",
+  },
+  {
+    id: 7,
+    src: `${bp}/portfolio/victoria.jpg`,
+    alt: "Victoria — Vitória de Samotrácia com espada e andorinhas na perna",
+    style: "Neo-Clássico",
+    placement: "Perna",
+    size: "large" as const,
+    label: "VICTORIA",
+  },
+  {
+    id: 8,
+    src: `${bp}/portfolio/dante.jpg`,
+    alt: "Dante — manga épica com figuras clássicas e demônio no ombro",
+    style: "Neo-Clássico",
+    placement: "Ombro & Braço",
+    size: "large" as const,
+    label: "DANTE",
+  },
+  {
+    id: 9,
+    src: `${bp}/portfolio/marcus.jpg`,
+    alt: "Marcus — busto greco-romano com andorinhas e chave no antebraço",
+    style: "Neo-Clássico",
+    placement: "Antebraço",
+    size: "medium" as const,
+    label: "MARCUS",
+  },
+  {
+    id: 10,
+    src: `${bp}/portfolio/liberta.jpg`,
+    alt: "Libertà — figura surrealista rodeada por pássaros no peito",
+    style: "Collage",
+    placement: "Peito",
+    size: "medium" as const,
+    label: "LIBERTÀ",
+  },
 ];
 
-export const flashItems: {
-  id: string;
-  name: string;
-  style: string;
-  description: string;
-  src: string;
-  simSrc: string;
-  placeholder: string;
-}[] = [
-  // Adicione os flashes disponíveis aqui.
-  // Exemplo:
-  // {
-  //   id: "flash-01",
-  //   name: "Nome do Flash",
-  //   style: "Neo-Clássico",
-  //   description: "Descrição do flash.",
-  //   src: `${bp}/flashes/nome-do-flash.jpg`,
-  //   simSrc: `${bp}/flashes/sim/nome-do-flash.png`,
-  //   placeholder: "🖤",
-  // },
+export const flashItems = [
+  {
+    id: "flash-01",
+    name: "Visão",
+    style: "Neo-Geométrico",
+    description: "Olho com asas, geometria sagrada e figura humana em contemplação. Mandala e símbolos esotéricos em composição vertical.",
+    src: `${bp}/flashes/visao.png`,
+    simSrc: `${bp}/flashes/sim/visao.png`,
+    placeholder: "👁️",
+  },
+  {
+    id: "flash-02",
+    name: "Mind & Soul",
+    style: "Collage",
+    description: "Esqueleto anatômico com mapa corporal — MIND, SOUL, coração e sistema nervoso. Geometria e constelações que conectam o físico ao metafísico.",
+    src: `${bp}/flashes/mind-soul.png`,
+    simSrc: `${bp}/flashes/sim/mind-soul.png`,
+    placeholder: "🦴",
+  },
+  {
+    id: "flash-03",
+    name: "A Ascensão",
+    style: "Neo-Geométrico",
+    description: "Mão e olho fragmentados com figura escalando uma escada — a busca pelo conhecimento e pela transcendência em traços precisos.",
+    src: `${bp}/flashes/ascensao.png`,
+    simSrc: `${bp}/flashes/sim/ascensao.png`,
+    placeholder: "🪜",
+  },
+  {
+    id: "flash-04",
+    name: "As Above So Below",
+    style: "Neo-Clássico",
+    description: "Cena clássica com anjos, borboletas e texto latino — dualidade entre o celeste e o terrestre. Composição narrativa de alto impacto.",
+    src: `${bp}/flashes/as-above.png`,
+    simSrc: `${bp}/flashes/sim/as-above.png`,
+    placeholder: "🦋",
+  },
+  {
+    id: "flash-05",
+    name: "Dionísio",
+    style: "Neo-Clássico",
+    description: "Escultura greco-romana do deus Dionísio com taça e uvas — geometria sagrada no cálice. Microrealismo e classicismo em equilíbrio.",
+    src: `${bp}/flashes/dionisio.png`,
+    simSrc: `${bp}/flashes/sim/dionisio.png`,
+    placeholder: "🍇",
+  },
+  {
+    id: "flash-06",
+    name: "Anjo Guardião",
+    style: "Neo-Clássico",
+    description: "Anjo alado em mockup no peito com tridente e cruz — proteção e espiritualidade em traço fino. Ideal para peitoral ou ombro.",
+    src: `${bp}/flashes/anjo.png`,
+    simSrc: `${bp}/flashes/sim/anjo.png`,
+    placeholder: "😇",
+  },
+  {
+    id: "flash-07",
+    name: "Leão de San Marco",
+    style: "Neo-Clássico",
+    description: "Leão alado em microrealismo com geometria estrutural — símbolo de força, sabedoria e soberania. Projeto disponível para antebraço ou braço.",
+    src: `${bp}/flashes/leao.png`,
+    simSrc: `${bp}/flashes/sim/leao.png`,
+    placeholder: "🦁",
+  },
+  {
+    id: "flash-08",
+    name: "Última Ceia",
+    style: "Collage",
+    description: "Releitura da Última Ceia com caveira, anjos e geometria sagrada — fé, memória e mortalidade em composição densa e simbólica.",
+    src: `${bp}/flashes/ultima-ceia.png`,
+    simSrc: `${bp}/flashes/sim/ultima-ceia.png`,
+    placeholder: "✝️",
+  },
 ];
