@@ -87,10 +87,6 @@ export default function DraggableTattoo({
         // Realismo: pigmentos escuros se fundem com a textura da pele.
         // O "multiply" escurece o fundo onde a tinta é escura e some no branco.
         globalCompositeOperation="multiply"
-        // Pequeno ajuste fotográfico para a tinta não parecer um adesivo colado
-        shadowColor="#000"
-        shadowBlur={1}
-        shadowOpacity={0.15}
       />
 
       {/* O Transformer só é renderizado quando esta camada está selecionada.

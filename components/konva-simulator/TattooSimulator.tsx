@@ -10,8 +10,9 @@ import {
 import { Stage, Layer, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import type Konva from "konva";
-import { Download } from "lucide-react";
+import { Download, Camera, ImageIcon } from "lucide-react";
 import DraggableTattoo from "./DraggableTattoo";
+import CameraCapture from "./CameraCapture";
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
 interface StageSize {
@@ -23,16 +24,18 @@ const DEFAULT_ASPECT = 3 / 4;
 const OPACITY_MIN = 0.4;
 const OPACITY_MAX = 1.0;
 
-/* ─── Remove o fundo branco/claro do PNG da tatuagem ─────────────
-   Converte pixels claros em transparentes usando a mesma curva
-   sigmoid do simulador principal. Retorna um data URL com fundo
-   limpo que o Konva pode usar sem mostrar "papel" ao redor.       */
+/* ─── Remove o fundo (papel/branco) do PNG da tatuagem ───────────
+   Keying ADAPTATIVO: em vez de assumir branco puro (245), amostra
+   os 4 cantos da imagem para descobrir a luminância real do fundo
+   (papel off-white, cinza, fotografado com sombra etc.) e usa esse
+   valor como ponto de corte. Assim a "folha" some de verdade.     */
 function extractTattoo(src: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
-        const MAX = 900;
+        const MAX = 1000;
         const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
         const w = Math.round(img.width * ratio);
         const h = Math.round(img.height * ratio);
@@ -45,33 +48,59 @@ function extractTattoo(src: string): Promise<string> {
 
         const id = ctx.getImageData(0, 0, w, h);
         const px = id.data;
-        const BG = 245;
-        const INK = 92;
+
+        // --- Detecta a luminância do fundo pelos 4 cantos ---
+        const patch = Math.max(4, Math.round(Math.min(w, h) * 0.06));
+        const sampleLum: number[] = [];
+        const sampleCorner = (x0: number, y0: number) => {
+          for (let y = y0; y < y0 + patch && y < h; y++) {
+            for (let x = x0; x < x0 + patch && x < w; x++) {
+              const i = (y * w + x) * 4;
+              if (px[i + 3] < 8) continue;
+              sampleLum.push(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
+            }
+          }
+        };
+        sampleCorner(0, 0);
+        sampleCorner(w - patch, 0);
+        sampleCorner(0, h - patch);
+        sampleCorner(w - patch, h - patch);
+        sampleLum.sort((a, b) => a - b);
+        // Mediana dos cantos = cor do papel; fallback 245 se vazio
+        const bgLum = sampleLum.length
+          ? sampleLum[Math.floor(sampleLum.length * 0.5)]
+          : 245;
+
+        // Ponto branco logo abaixo do fundo → papel zera por completo.
+        // Ponto de tinta bem mais escuro → só traço sobrevive.
+        const BG = Math.max(60, bgLum - 12);
+        const INK = Math.max(20, BG - 80);
 
         for (let i = 0; i < px.length; i += 4) {
           const a = px[i + 3];
-          if (a < 16) { px[i + 3] = 0; continue; }
+          if (a < 10) { px[i + 3] = 0; continue; }
 
           const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
           let t = (BG - lum) / (BG - INK);
           t = Math.max(0, Math.min(1, t));
-          // Suavização S-curve para bordas naturais
-          t = t * t * (3 - 2 * t);
+          t = t * t * (3 - 2 * t); // S-curve para bordas suaves
 
-          if (t <= 0.004) { px[i + 3] = 0; continue; }
+          // Cutoff alto mata a névoa de papel que sobrava antes
+          if (t <= 0.02) { px[i + 3] = 0; continue; }
 
+          // Dessatura levemente para a tinta integrar à pele (não fica colorida)
           const avg = (px[i] + px[i + 1] + px[i + 2]) / 3;
-          const DS = 0.88;
-          px[i]     = Math.round((px[i]     * (1 - DS) + avg * DS) * 0.87);
-          px[i + 1] = Math.round((px[i + 1] * (1 - DS) + avg * DS) * 0.93);
-          px[i + 2] = Math.round((px[i + 2] * (1 - DS) + avg * DS) * 1.0);
-          px[i + 3] = Math.round(t * a * 0.95);
+          const DS = 0.9;
+          px[i]     = Math.round((px[i]     * (1 - DS) + avg * DS) * 0.85);
+          px[i + 1] = Math.round((px[i + 1] * (1 - DS) + avg * DS) * 0.9);
+          px[i + 2] = Math.round((px[i + 2] * (1 - DS) + avg * DS) * 0.98);
+          px[i + 3] = Math.round(t * a);
         }
 
         ctx.putImageData(id, 0, 0);
         resolve(cv.toDataURL("image/png"));
       } catch {
-        resolve(src); // fallback: usa src original se o processamento falhar
+        resolve(src);
       }
     };
     img.onerror = () => resolve(src);
@@ -79,7 +108,7 @@ function extractTattoo(src: string): Promise<string> {
   });
 }
 
-/* ─── Camada de fundo: foto do corpo, cobre o Stage (object-fit cover) ─ */
+/* ─── Foto do corpo: cobre o Stage (object-fit: cover) ───────────── */
 function BodyPhoto({ src, size }: { src: string; size: StageSize }) {
   const [image] = useImage(src, "anonymous");
   if (!image) return null;
@@ -104,23 +133,21 @@ function BodyPhoto({ src, size }: { src: string; size: StageSize }) {
 export default function TattooSimulator() {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const bodyFileRef = useRef<HTMLInputElement>(null);
 
   const [bodySrc, setBodySrc] = useState<string | null>(null);
-  const [tattooSrc, setTattooSrc] = useState<string | null>(null);
-  // processedTattooSrc: data URL com fundo removido, pronto para o canvas
   const [processedTattooSrc, setProcessedTattooSrc] = useState<string | null>(null);
   const [opacity, setOpacity] = useState<number>(0.85);
   const [isSelected, setIsSelected] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   const [bodyImage] = useImage(bodySrc ?? "", "anonymous");
 
   const [stageSize, setStageSize] = useState<StageSize>({ width: 0, height: 0 });
 
-  /* ─── Responsividade: Stage tem dimensões numéricas ──────────────
-     Medimos o container via ResizeObserver e derivamos a altura a
-     partir do aspect ratio da foto carregada (ou 3/4 padrão).     */
+  /* ─── Responsividade do Stage (ResizeObserver) ──────────────────── */
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -140,20 +167,24 @@ export default function TattooSimulator() {
     return () => ro.disconnect();
   }, [bodyImage]);
 
-  /* ─── Upload: foto do corpo ──────────────────────────────────── */
-  const handleBodyUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  /* ─── Define a foto do corpo (de upload OU câmera) ──────────────── */
+  const applyBodyPhoto = useCallback((url: string) => {
     setBodySrc((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return url;
     });
   }, []);
 
-  /* ─── Upload: arte da tatuagem → remove fundo branco ────────────
-     Criamos o Object URL, passamos para extractTattoo que devolve
-     um data URL limpo (fundo transparente). O Object URL original
-     pode ser revogado logo após — só o data URL é mantido.        */
+  const handleBodyUpload = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      applyBodyPhoto(URL.createObjectURL(file));
+    },
+    [applyBodyPhoto],
+  );
+
+  /* ─── Upload da arte → remove fundo ─────────────────────────────── */
   const handleTattooUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -162,88 +193,104 @@ export default function TattooSimulator() {
     setProcessedTattooSrc(null);
 
     const objectUrl = URL.createObjectURL(file);
-    setTattooSrc(objectUrl);
-
     extractTattoo(objectUrl).then((dataUrl) => {
       URL.revokeObjectURL(objectUrl);
       setProcessedTattooSrc(dataUrl);
-      setIsSelected(true); // já entra selecionada para posicionar
+      setIsSelected(true);
       setIsProcessing(false);
     });
   }, []);
 
-  /* ─── Desseleção ao clicar no palco vazio ────────────────────── */
+  /* ─── Desseleção ao tocar no palco vazio ────────────────────────── */
   const handleStagePointerDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-      if (e.target === e.target.getStage()) {
-        setIsSelected(false);
-      }
+      if (e.target === e.target.getStage()) setIsSelected(false);
     },
     [],
   );
 
-  /* ─── Download ───────────────────────────────────────────────────
-     1. Esconde as alças do Transformer desselecionando
-     2. Aguarda um frame para Konva redesenhar sem as alças
-     3. Exporta o Stage inteiro como PNG 2× (maior qualidade)
-     4. Dispara o download via <a> temporário                      */
+  /* ─── Download (export do Stage) ────────────────────────────────
+     stage.toDataURL() do Konva é SÍNCRONO e devolve a string — não
+     usa callback (esse era o bug). Desselecionamos para esconder as
+     alças do Transformer, esperamos 2 frames para o Konva redesenhar
+     sem elas, e então exportamos em 2× e disparamos o download.     */
   const handleDownload = useCallback(() => {
     const stage = stageRef.current;
     if (!stage || isExporting) return;
 
     setIsExporting(true);
-    setIsSelected(false); // remove alças do Transformer do export
+    setIsSelected(false);
 
-    requestAnimationFrame(() => {
-      stage.toDataURL({
-        mimeType: "image/png",
-        pixelRatio: 2,
-        callback(dataUrl: string) {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        try {
+          const dataUrl = stage.toDataURL({
+            mimeType: "image/png",
+            pixelRatio: 2,
+          });
           const a = document.createElement("a");
           a.href = dataUrl;
           a.download = "tatuagem-simulada.png";
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
+        } catch {
+          alert("Não foi possível gerar a imagem. Tente novamente.");
+        } finally {
           setIsExporting(false);
-        },
-      });
-    });
+        }
+      }),
+    );
   }, [isExporting]);
 
   const canDownload = !!(bodySrc && processedTattooSrc);
-  const activeSrc = processedTattooSrc; // usa sempre a versão processada
 
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
 
-      {/* ─── Uploads ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
-          Foto do corpo
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleBodyUpload}
-            className="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:bg-neutral-900 file:text-white file:cursor-pointer cursor-pointer rounded border border-neutral-300 p-1"
-          />
-        </label>
+      {/* ─── Captura / upload da foto do corpo ───────────────────── */}
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-neutral-700">Foto do corpo</span>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setShowCamera(true)}
+            className="flex items-center justify-center gap-2 py-2.5 border border-neutral-900 bg-neutral-900 text-white text-xs uppercase tracking-widest hover:bg-neutral-700 transition-colors"
+          >
+            <Camera size={14} /> Tirar foto
+          </button>
+          <button
+            onClick={() => bodyFileRef.current?.click()}
+            className="flex items-center justify-center gap-2 py-2.5 border border-neutral-300 text-neutral-700 text-xs uppercase tracking-widest hover:border-neutral-900 transition-colors"
+          >
+            <ImageIcon size={14} /> Galeria
+          </button>
+        </div>
+        <input
+          ref={bodyFileRef}
+          type="file"
+          accept="image/*"
+          onChange={handleBodyUpload}
+          className="hidden"
+        />
+      </div>
 
-        <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
-          Arte (PNG)
+      {/* ─── Upload da arte ──────────────────────────────────────── */}
+      <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
+        <span className="flex items-center gap-2">
+          Arte da tatuagem (PNG)
           {isProcessing && (
-            <span className="text-[10px] text-neutral-400 animate-pulse">
-              Processando…
+            <span className="text-[10px] text-neutral-400 animate-pulse normal-case">
+              processando…
             </span>
           )}
-          <input
-            type="file"
-            accept="image/png,image/*"
-            onChange={handleTattooUpload}
-            className="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:bg-neutral-900 file:text-white file:cursor-pointer cursor-pointer rounded border border-neutral-300 p-1"
-          />
-        </label>
-      </div>
+        </span>
+        <input
+          type="file"
+          accept="image/png,image/*"
+          onChange={handleTattooUpload}
+          className="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:bg-neutral-900 file:text-white file:cursor-pointer cursor-pointer rounded border border-neutral-300 p-1"
+        />
+      </label>
 
       {/* ─── Canvas ──────────────────────────────────────────────── */}
       <div
@@ -263,24 +310,13 @@ export default function TattooSimulator() {
             onMouseDown={handleStagePointerDown}
             onTouchStart={handleStagePointerDown}
           >
-            {/*
-             * Uma única Layer com ambas as imagens.
-             *
-             * Por que uma Layer só?
-             * O `globalCompositeOperation="multiply"` no Konva compõe o pixel
-             * da tatuagem contra o que já está NO CANVAS DESSA LAYER.
-             * Se a tatuagem estivesse numa Layer separada, ela seria
-             * desenhada contra o canvas vazio (transparente) da própria Layer
-             * — e `branco × transparente = transparente/preto`, não skin.
-             * Com fundo e tatuagem na mesma Layer, o multiply age exatamente
-             * como `mix-blend-mode: multiply` no CSS: tinta escura × skin.
-             */}
+            {/* Uma única Layer: o multiply só funde a tinta contra a pele
+                quando ambas estão no mesmo canvas (ver commit anterior). */}
             <Layer>
               {bodySrc && <BodyPhoto src={bodySrc} size={stageSize} />}
-
-              {activeSrc && (
+              {processedTattooSrc && (
                 <DraggableTattoo
-                  src={activeSrc}
+                  src={processedTattooSrc}
                   opacity={opacity}
                   isSelected={isSelected}
                   onSelect={() => setIsSelected(true)}
@@ -295,7 +331,7 @@ export default function TattooSimulator() {
         {!bodySrc && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs uppercase tracking-widest text-neutral-400">
-              Envie uma foto do corpo
+              Tire uma foto ou escolha da galeria
             </p>
           </div>
         )}
@@ -311,7 +347,7 @@ export default function TattooSimulator() {
           step={0.01}
           value={opacity}
           onChange={(e) => setOpacity(parseFloat(e.target.value))}
-          disabled={!activeSrc}
+          disabled={!processedTattooSrc}
           className="flex-1 accent-neutral-900 disabled:opacity-40"
         />
         <span className="w-10 text-right tabular-nums text-neutral-500">
@@ -333,6 +369,17 @@ export default function TattooSimulator() {
         Toque na arte para girar e redimensionar. Toque fora para concluir.
         Nada é enviado a servidores — 100% local.
       </p>
+
+      {/* ─── Modal da câmera ─────────────────────────────────────── */}
+      {showCamera && (
+        <CameraCapture
+          onCapture={(dataUrl) => {
+            applyBodyPhoto(dataUrl);
+            setShowCamera(false);
+          }}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 }
