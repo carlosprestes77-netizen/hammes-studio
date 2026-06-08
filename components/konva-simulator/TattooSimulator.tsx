@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -11,6 +10,7 @@ import {
 import { Stage, Layer, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import type Konva from "konva";
+import { Download } from "lucide-react";
 import DraggableTattoo from "./DraggableTattoo";
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
@@ -19,18 +19,71 @@ interface StageSize {
   height: number;
 }
 
-/** Proporção padrão do palco enquanto não há foto de corpo carregada (retrato). */
-const DEFAULT_ASPECT = 3 / 4; // largura / altura
+const DEFAULT_ASPECT = 3 / 4;
 const OPACITY_MIN = 0.4;
 const OPACITY_MAX = 1.0;
 
-/* ─── Camada de fundo: a foto do corpo, fixa, cobrindo o Stage ───── */
+/* ─── Remove o fundo branco/claro do PNG da tatuagem ─────────────
+   Converte pixels claros em transparentes usando a mesma curva
+   sigmoid do simulador principal. Retorna um data URL com fundo
+   limpo que o Konva pode usar sem mostrar "papel" ao redor.       */
+function extractTattoo(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const MAX = 900;
+        const ratio = Math.min(1, MAX / Math.max(img.width, img.height));
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+
+        const cv = document.createElement("canvas");
+        cv.width = w;
+        cv.height = h;
+        const ctx = cv.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const id = ctx.getImageData(0, 0, w, h);
+        const px = id.data;
+        const BG = 245;
+        const INK = 92;
+
+        for (let i = 0; i < px.length; i += 4) {
+          const a = px[i + 3];
+          if (a < 16) { px[i + 3] = 0; continue; }
+
+          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          let t = (BG - lum) / (BG - INK);
+          t = Math.max(0, Math.min(1, t));
+          // Suavização S-curve para bordas naturais
+          t = t * t * (3 - 2 * t);
+
+          if (t <= 0.004) { px[i + 3] = 0; continue; }
+
+          const avg = (px[i] + px[i + 1] + px[i + 2]) / 3;
+          const DS = 0.88;
+          px[i]     = Math.round((px[i]     * (1 - DS) + avg * DS) * 0.87);
+          px[i + 1] = Math.round((px[i + 1] * (1 - DS) + avg * DS) * 0.93);
+          px[i + 2] = Math.round((px[i + 2] * (1 - DS) + avg * DS) * 1.0);
+          px[i + 3] = Math.round(t * a * 0.95);
+        }
+
+        ctx.putImageData(id, 0, 0);
+        resolve(cv.toDataURL("image/png"));
+      } catch {
+        resolve(src); // fallback: usa src original se o processamento falhar
+      }
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
+/* ─── Camada de fundo: foto do corpo, cobre o Stage (object-fit cover) ─ */
 function BodyPhoto({ src, size }: { src: string; size: StageSize }) {
   const [image] = useImage(src, "anonymous");
   if (!image) return null;
 
-  // Emula `object-fit: cover` dentro do Konva: escala pela maior dimensão
-  // e centraliza, para a foto preencher todo o palco sem distorcer.
   const scale = Math.max(size.width / image.width, size.height / image.height);
   const w = image.width * scale;
   const h = image.height * scale;
@@ -42,7 +95,7 @@ function BodyPhoto({ src, size }: { src: string; size: StageSize }) {
       height={h}
       x={(size.width - w) / 2}
       y={(size.height - h) / 2}
-      listening={false} // o fundo não captura eventos → clicar nele desseleciona
+      listening={false}
     />
   );
 }
@@ -54,20 +107,20 @@ export default function TattooSimulator() {
 
   const [bodySrc, setBodySrc] = useState<string | null>(null);
   const [tattooSrc, setTattooSrc] = useState<string | null>(null);
+  // processedTattooSrc: data URL com fundo removido, pronto para o canvas
+  const [processedTattooSrc, setProcessedTattooSrc] = useState<string | null>(null);
   const [opacity, setOpacity] = useState<number>(0.85);
   const [isSelected, setIsSelected] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Dimensões reais do Stage, recalculadas conforme o container muda de tamanho.
-  const [stageSize, setStageSize] = useState<StageSize>({ width: 0, height: 0 });
-
-  // Aspect ratio dirigido pela foto de corpo; cai no padrão antes do upload.
   const [bodyImage] = useImage(bodySrc ?? "", "anonymous");
 
-  /* ─── Responsividade do Stage (mobile-first) ──────────────────────
-     O Konva precisa de width/height numéricos — não aceita "100%". Então
-     medimos a largura real do container com um ResizeObserver e derivamos a
-     altura a partir do aspect ratio da foto carregada. Assim o palco
-     acompanha o layout fluido sem distorcer a imagem. */
+  const [stageSize, setStageSize] = useState<StageSize>({ width: 0, height: 0 });
+
+  /* ─── Responsividade: Stage tem dimensões numéricas ──────────────
+     Medimos o container via ResizeObserver e derivamos a altura a
+     partir do aspect ratio da foto carregada (ou 3/4 padrão).     */
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -78,8 +131,7 @@ export default function TattooSimulator() {
         bodyImage && bodyImage.width > 0
           ? bodyImage.width / bodyImage.height
           : DEFAULT_ASPECT;
-      const height = width / aspect;
-      setStageSize({ width, height });
+      setStageSize({ width, height: width / aspect });
     };
 
     measure();
@@ -88,15 +140,7 @@ export default function TattooSimulator() {
     return () => ro.disconnect();
   }, [bodyImage]);
 
-  /* ─── Limpeza dos Object URLs para evitar vazamento de memória ───── */
-  useEffect(() => {
-    return () => {
-      if (bodySrc) URL.revokeObjectURL(bodySrc);
-      if (tattooSrc) URL.revokeObjectURL(tattooSrc);
-    };
-  }, [bodySrc, tattooSrc]);
-
-  /* ─── Uploads → Object URLs que alimentam o canvas ───────────────── */
+  /* ─── Upload: foto do corpo ──────────────────────────────────── */
   const handleBodyUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -106,20 +150,29 @@ export default function TattooSimulator() {
     });
   }, []);
 
+  /* ─── Upload: arte da tatuagem → remove fundo branco ────────────
+     Criamos o Object URL, passamos para extractTattoo que devolve
+     um data URL limpo (fundo transparente). O Object URL original
+     pode ser revogado logo após — só o data URL é mantido.        */
   const handleTattooUpload = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setTattooSrc((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
+
+    setIsProcessing(true);
+    setProcessedTattooSrc(null);
+
+    const objectUrl = URL.createObjectURL(file);
+    setTattooSrc(objectUrl);
+
+    extractTattoo(objectUrl).then((dataUrl) => {
+      URL.revokeObjectURL(objectUrl);
+      setProcessedTattooSrc(dataUrl);
+      setIsSelected(true); // já entra selecionada para posicionar
+      setIsProcessing(false);
     });
-    setIsSelected(true); // já entra selecionada para o usuário posicionar
   }, []);
 
-  /* ─── Desseleção: clicar/tocar no palco vazio ou na foto de fundo ──
-     O Transformer some quando o alvo do evento for o próprio Stage
-     (área vazia) — a foto de fundo tem listening={false}, então cliques
-     nela "atravessam" e também caem aqui. */
+  /* ─── Desseleção ao clicar no palco vazio ────────────────────── */
   const handleStagePointerDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (e.target === e.target.getStage()) {
@@ -129,9 +182,42 @@ export default function TattooSimulator() {
     [],
   );
 
+  /* ─── Download ───────────────────────────────────────────────────
+     1. Esconde as alças do Transformer desselecionando
+     2. Aguarda um frame para Konva redesenhar sem as alças
+     3. Exporta o Stage inteiro como PNG 2× (maior qualidade)
+     4. Dispara o download via <a> temporário                      */
+  const handleDownload = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage || isExporting) return;
+
+    setIsExporting(true);
+    setIsSelected(false); // remove alças do Transformer do export
+
+    requestAnimationFrame(() => {
+      stage.toDataURL({
+        mimeType: "image/png",
+        pixelRatio: 2,
+        callback(dataUrl: string) {
+          const a = document.createElement("a");
+          a.href = dataUrl;
+          a.download = "tatuagem-simulada.png";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setIsExporting(false);
+        },
+      });
+    });
+  }, [isExporting]);
+
+  const canDownload = !!(bodySrc && processedTattooSrc);
+  const activeSrc = processedTattooSrc; // usa sempre a versão processada
+
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
-      {/* ─── Controles de upload ─────────────────────────────────── */}
+
+      {/* ─── Uploads ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
           Foto do corpo
@@ -145,6 +231,11 @@ export default function TattooSimulator() {
 
         <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
           Arte (PNG)
+          {isProcessing && (
+            <span className="text-[10px] text-neutral-400 animate-pulse">
+              Processando…
+            </span>
+          )}
           <input
             type="file"
             accept="image/png,image/*"
@@ -154,31 +245,42 @@ export default function TattooSimulator() {
         </label>
       </div>
 
-      {/* ─── Palco (canvas) ──────────────────────────────────────── */}
+      {/* ─── Canvas ──────────────────────────────────────────────── */}
       <div
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-lg border border-neutral-300 bg-neutral-100 touch-none"
-        style={{ aspectRatio: String(stageSize.width / (stageSize.height || 1) || DEFAULT_ASPECT) }}
+        style={{
+          aspectRatio: String(
+            stageSize.width / (stageSize.height || 1) || DEFAULT_ASPECT,
+          ),
+        }}
       >
         {stageSize.width > 0 && (
           <Stage
             ref={stageRef}
             width={stageSize.width}
             height={stageSize.height}
-            // Desseleção tanto no mouse quanto no toque
             onMouseDown={handleStagePointerDown}
             onTouchStart={handleStagePointerDown}
           >
-            {/* Camada do fundo (foto da pele), fixa */}
-            <Layer listening={false}>
-              {bodySrc && <BodyPhoto src={bodySrc} size={stageSize} />}
-            </Layer>
-
-            {/* Camada da tatuagem (arrastável + Transformer) */}
+            {/*
+             * Uma única Layer com ambas as imagens.
+             *
+             * Por que uma Layer só?
+             * O `globalCompositeOperation="multiply"` no Konva compõe o pixel
+             * da tatuagem contra o que já está NO CANVAS DESSA LAYER.
+             * Se a tatuagem estivesse numa Layer separada, ela seria
+             * desenhada contra o canvas vazio (transparente) da própria Layer
+             * — e `branco × transparente = transparente/preto`, não skin.
+             * Com fundo e tatuagem na mesma Layer, o multiply age exatamente
+             * como `mix-blend-mode: multiply` no CSS: tinta escura × skin.
+             */}
             <Layer>
-              {tattooSrc && (
+              {bodySrc && <BodyPhoto src={bodySrc} size={stageSize} />}
+
+              {activeSrc && (
                 <DraggableTattoo
-                  src={tattooSrc}
+                  src={activeSrc}
                   opacity={opacity}
                   isSelected={isSelected}
                   onSelect={() => setIsSelected(true)}
@@ -190,7 +292,6 @@ export default function TattooSimulator() {
           </Stage>
         )}
 
-        {/* Placeholder enquanto não há foto */}
         {!bodySrc && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs uppercase tracking-widest text-neutral-400">
@@ -210,7 +311,7 @@ export default function TattooSimulator() {
           step={0.01}
           value={opacity}
           onChange={(e) => setOpacity(parseFloat(e.target.value))}
-          disabled={!tattooSrc}
+          disabled={!activeSrc}
           className="flex-1 accent-neutral-900 disabled:opacity-40"
         />
         <span className="w-10 text-right tabular-nums text-neutral-500">
@@ -218,9 +319,19 @@ export default function TattooSimulator() {
         </span>
       </label>
 
+      {/* ─── Download ────────────────────────────────────────────── */}
+      <button
+        onClick={handleDownload}
+        disabled={!canDownload || isExporting}
+        className="flex items-center justify-center gap-2 w-full py-3 border border-neutral-900 bg-neutral-900 text-white text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-neutral-700"
+      >
+        <Download size={13} />
+        {isExporting ? "Gerando…" : "Baixar foto"}
+      </button>
+
       <p className="text-[11px] leading-relaxed text-neutral-400">
         Toque na arte para girar e redimensionar. Toque fora para concluir.
-        Tudo é processado localmente — nada é enviado a servidores.
+        Nada é enviado a servidores — 100% local.
       </p>
     </div>
   );
