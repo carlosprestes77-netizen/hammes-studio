@@ -6,6 +6,7 @@ import Hero from "@/components/sections/Hero";
 import AgendaBanner from "@/components/sections/AgendaBanner";
 import Stats from "@/components/sections/Stats";
 import Portfolio from "@/components/sections/Portfolio";
+import Manifesto from "@/components/sections/Manifesto";
 import FlashGallery from "@/components/sections/FlashGallery";
 import SimuladorKonva from "@/components/sections/SimuladorKonva";
 import Process from "@/components/sections/Process";
@@ -24,6 +25,7 @@ export default function Home() {
         <AgendaBanner />
         <Stats />
         <Portfolio />
+        <Manifesto />
         <FlashGallery />
         <SimuladorKonva />
         <Process />
