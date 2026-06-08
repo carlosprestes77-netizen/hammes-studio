@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, RotateCcw, ZoomIn, ZoomOut,
   ChevronLeft, ChevronRight, ArrowRight, X,
-  MessageCircle, CheckCircle, Send,
+  MessageCircle, CheckCircle,
 } from "lucide-react";
 import { flashItems, ARTIST } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -124,6 +124,100 @@ function extractTattoo(src: string): Promise<string> {
   });
 }
 
+/* ─── Animated tattoo: reveals scanline-by-scanline with needle ── */
+function AnimatedTattoo({
+  src,
+  displayWidth,
+  onStart,
+  onDone,
+  skipRef,
+}: {
+  src: string;
+  displayWidth: number;
+  onStart?: () => void;
+  onDone?: () => void;
+  skipRef?: React.MutableRefObject<(() => void) | null>;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [needleY, setNeedleY] = useState<number | null>(0);
+  const animRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    setNeedleY(0);
+
+    const img = new Image();
+    img.onload = () => {
+      const W = img.naturalWidth;
+      const H = img.naturalHeight;
+      canvas.width = W;
+      canvas.height = H;
+
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, W, H);
+      const fullData = ctx.getImageData(0, 0, W, H);
+      ctx.clearRect(0, 0, W, H);
+
+      onStart?.();
+
+      // ~2.4 s at 60 fps
+      const rowsPerFrame = Math.max(1, Math.ceil(H / 144));
+      let currentRow = 0;
+
+      const finish = () => {
+        if (animRef.current) cancelAnimationFrame(animRef.current);
+        ctx.putImageData(fullData, 0, 0);
+        setNeedleY(null);
+        onDone?.();
+      };
+
+      if (skipRef) skipRef.current = finish;
+
+      const tick = () => {
+        if (currentRow >= H) { finish(); return; }
+        const rows = Math.min(rowsPerFrame, H - currentRow);
+        // putImageData dirty-rect: only writes the target scanlines, rest untouched
+        ctx.putImageData(fullData, 0, 0, 0, currentRow, W, rows);
+        currentRow += rows;
+        setNeedleY(currentRow / H);
+        animRef.current = requestAnimationFrame(tick);
+      };
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+    img.src = src;
+
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [src]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="relative" style={{ width: `${displayWidth}px` }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: `${displayWidth}px`,
+          height: "auto",
+          display: "block",
+          mixBlendMode: "multiply",
+          filter: "blur(0.4px) contrast(1.08) brightness(0.93) saturate(0.85)",
+          opacity: 0.90,
+        }}
+      />
+      {/* Glowing needle cursor */}
+      {needleY !== null && (
+        <div
+          className="absolute left-1/2 pointer-events-none z-10"
+          style={{ top: `${needleY * 100}%`, transform: "translate(-50%, -50%)" }}
+        >
+          <div className="w-2 h-2 rounded-full bg-white/95 shadow-[0_0_8px_4px_rgba(255,255,255,0.85),0_0_2px_1px_rgba(0,0,0,0.35)]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Component ──────────────────────────────────────────────── */
 export default function Simulator() {
   const [selected, setSelected] = useState<(typeof flashItems)[0] | null>(null);
@@ -141,13 +235,21 @@ export default function Simulator() {
   const [showBooking, setShowBooking] = useState(false);
   const [bookingForm, setBookingForm] = useState<BookingForm>(BOOKING_EMPTY);
   const [bookingDone, setBookingDone] = useState(false);
+  const [tattooDrawing, setTattooDrawing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const skipDrawRef = useRef<(() => void) | null>(null);
 
   const perPage = 3;
   const totalPages = Math.ceil(flashItems.length / perPage);
   const visible = flashItems.slice(page * perPage, page * perPage + perPage);
+
+  const tattooSrc = processedSrc ?? (selected?.simSrc ?? null);
+  const overlayVisible = !!(selected && photo && !detecting && tattooSrc);
+  // Unique key drives AnimatedTattoo remount → restarts animation on new flash or new photo
+  const animKey = overlayVisible ? `${tattooSrc}::${photo}` : "none";
+  const showHint = overlayVisible && !userMoved && !tattooDrawing;
 
   const runDetection = useCallback((img: HTMLImageElement) => {
     if (!containerRef.current) return;
@@ -240,10 +342,6 @@ export default function Simulator() {
     e.preventDefault(); setUserMoved(true);
     setXf(p => ({ ...p, scale: Math.min(3, Math.max(0.3, p.scale - e.deltaY * 0.001)) }));
   }, []);
-
-  const tattooSrc = processedSrc ?? (selected?.simSrc ?? null);
-  const overlayVisible = !!(selected && photo && !detecting && tattooSrc);
-  const showHint = overlayVisible && !userMoved;
 
   return (
     <section id="simulador" className="py-24 lg:py-36 bg-paper-100">
@@ -454,7 +552,7 @@ export default function Simulator() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.4 }}
                     className="absolute inset-0 z-10 pointer-events-none"
                   >
                     <div
@@ -469,18 +567,13 @@ export default function Simulator() {
                       onMouseDown={onMouseDown}
                       onTouchStart={onTouchStart}
                     >
-                      <img
+                      <AnimatedTattoo
+                        key={animKey}
                         src={tattooSrc!}
-                        alt={selected!.name}
-                        className="select-none pointer-events-none block"
-                        style={{
-                          width: `${BASE_PX}px`,
-                          height: "auto",
-                          mixBlendMode: "multiply",
-                          filter: "blur(0.4px) contrast(1.08) brightness(0.93) saturate(0.85)",
-                          opacity: 0.90,
-                        }}
-                        draggable={false}
+                        displayWidth={BASE_PX}
+                        onStart={() => setTattooDrawing(true)}
+                        onDone={() => setTattooDrawing(false)}
+                        skipRef={skipDrawRef}
                       />
                       <AnimatePresence>
                         {showHint && (
@@ -493,6 +586,36 @@ export default function Simulator() {
                           </motion.p>
                         )}
                       </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Drawing progress indicator */}
+              <AnimatePresence>
+                {tattooDrawing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute bottom-3 left-0 right-0 flex justify-center z-20 pointer-events-none"
+                  >
+                    <div className="flex items-center gap-2.5 bg-paper-950/65 backdrop-blur-sm px-3.5 py-2 pointer-events-auto">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map(i => (
+                          <motion.div key={i} className="w-1 h-1 rounded-full bg-paper-400"
+                            animate={{ opacity: [0.3, 1, 0.3] }}
+                            transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.14 }} />
+                        ))}
+                      </div>
+                      <p className="text-[9px] tracking-widest uppercase text-paper-300">Gravando</p>
+                      <button
+                        onClick={() => skipDrawRef.current?.()}
+                        className="text-[9px] tracking-widest uppercase text-paper-500 hover:text-paper-200 transition-colors border-l border-paper-700 pl-2.5 ml-0.5"
+                      >
+                        Pular
+                      </button>
                     </div>
                   </motion.div>
                 )}
@@ -512,7 +635,7 @@ export default function Simulator() {
             </div>
 
             <p className="text-[9px] text-ink-faint">
-              {overlayVisible ? "Scroll → tamanho · Arraste → posição · Botões → rotação" : ""}
+              {overlayVisible && !tattooDrawing ? "Scroll → tamanho · Arraste → posição · Botões → rotação" : ""}
             </p>
 
             <AnimatePresence mode="wait">
@@ -638,7 +761,7 @@ export default function Simulator() {
                           type="tel"
                           value={bookingForm.phone}
                           onChange={(e) => setBookingForm(f => ({ ...f, phone: e.target.value }))}
-                          placeholder="(48) 99999-9999"
+                          placeholder="(45) 99999-9999"
                           className="w-full bg-transparent border-b border-paper-400 focus:border-ink outline-none text-sm text-ink py-1.5 placeholder-paper-400 transition-colors"
                         />
                       </div>
