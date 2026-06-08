@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Upload, CheckCircle, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ARTIST } from "@/lib/data";
+import { trackWhatsAppClick } from "@/lib/analytics";
 
 interface FormData {
   name: string; whatsapp: string; description: string;
@@ -96,6 +97,11 @@ export default function QuoteForm() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    trackWhatsAppClick({
+      source: "quote_form",
+      flash_name: form.selectedFlash || undefined,
+      placement: form.placement || undefined,
+    });
     window.open(`https://wa.me/${ARTIST.whatsapp}?text=${encodeURIComponent(buildMessage(form))}`, "_blank", "noopener");
     setSubmitted(true);
   };
@@ -141,8 +147,13 @@ export default function QuoteForm() {
 
             <div className="pt-6 border-t border-paper-300">
               <p className="label-section mb-3">Fale direto</p>
-              <a href={`https://wa.me/${ARTIST.whatsapp}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 py-3 px-5 bg-[#25D366] text-white text-[10px] tracking-widest uppercase hover:bg-[#1da85a] transition-colors duration-300">
+              <a
+                href={`https://wa.me/${ARTIST.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackWhatsAppClick({ source: "direct_link" })}
+                className="inline-flex items-center gap-2.5 py-3 px-5 bg-[#25D366] text-white text-[10px] tracking-widest uppercase hover:bg-[#1da85a] transition-colors duration-300"
+              >
                 <MessageCircle size={13} /> Abrir WhatsApp
               </a>
             </div>
