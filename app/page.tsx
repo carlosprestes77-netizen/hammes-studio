@@ -7,7 +7,7 @@ import AgendaBanner from "@/components/sections/AgendaBanner";
 import Stats from "@/components/sections/Stats";
 import Portfolio from "@/components/sections/Portfolio";
 import FlashGallery from "@/components/sections/FlashGallery";
-import Simulator from "@/components/sections/Simulator";
+import SimuladorKonva from "@/components/sections/SimuladorKonva";
 import Process from "@/components/sections/Process";
 import Studio from "@/components/sections/Studio";
 import Testimonials from "@/components/sections/Testimonials";
@@ -25,7 +25,7 @@ export default function Home() {
         <Stats />
         <Portfolio />
         <FlashGallery />
-        <Simulator />
+        <SimuladorKonva />
         <Process />
         <Studio />
         <Testimonials />

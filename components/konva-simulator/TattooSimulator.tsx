@@ -10,7 +10,7 @@ import {
 import { Stage, Layer, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import type Konva from "konva";
-import { Download, Camera, ImageIcon } from "lucide-react";
+import { Download, Camera, ImageIcon, Upload } from "lucide-react";
 import DraggableTattoo from "./DraggableTattoo";
 import CameraCapture from "./CameraCapture";
 
@@ -246,61 +246,48 @@ export default function TattooSimulator() {
   const canDownload = !!(bodySrc && processedTattooSrc);
 
   return (
-    <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
+    <div className="w-full max-w-xl flex flex-col gap-5">
 
       {/* ─── Captura / upload da foto do corpo ───────────────────── */}
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-neutral-700">Foto do corpo</span>
+        <span className="text-[9px] tracking-widest uppercase text-ink-faint">Foto do corpo</span>
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setShowCamera(true)}
-            className="flex items-center justify-center gap-2 py-2.5 border border-neutral-900 bg-neutral-900 text-white text-xs uppercase tracking-widest hover:bg-neutral-700 transition-colors"
+            className="btn-primary flex items-center justify-center gap-2"
           >
-            <Camera size={14} /> Tirar foto
+            <Camera size={13} /> Tirar foto
           </button>
           <button
             onClick={() => bodyFileRef.current?.click()}
-            className="flex items-center justify-center gap-2 py-2.5 border border-neutral-300 text-neutral-700 text-xs uppercase tracking-widest hover:border-neutral-900 transition-colors"
+            className="btn-outline flex items-center justify-center gap-2"
           >
-            <ImageIcon size={14} /> Galeria
+            <ImageIcon size={13} /> Galeria
           </button>
         </div>
-        <input
-          ref={bodyFileRef}
-          type="file"
-          accept="image/*"
-          onChange={handleBodyUpload}
-          className="hidden"
-        />
+        <input ref={bodyFileRef} type="file" accept="image/*" onChange={handleBodyUpload} className="hidden" />
       </div>
 
       {/* ─── Upload da arte ──────────────────────────────────────── */}
-      <label className="flex flex-col gap-1.5 text-xs font-medium text-neutral-700">
-        <span className="flex items-center gap-2">
+      <div className="flex flex-col gap-2">
+        <span className="text-[9px] tracking-widest uppercase text-ink-faint flex items-center gap-2">
           Arte da tatuagem (PNG)
           {isProcessing && (
-            <span className="text-[10px] text-neutral-400 animate-pulse normal-case">
-              processando…
-            </span>
+            <span className="text-ink-faint animate-pulse normal-case tracking-normal">processando…</span>
           )}
         </span>
-        <input
-          type="file"
-          accept="image/png,image/*"
-          onChange={handleTattooUpload}
-          className="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:bg-neutral-900 file:text-white file:cursor-pointer cursor-pointer rounded border border-neutral-300 p-1"
-        />
-      </label>
+        <label className="flex items-center justify-center gap-2 py-3 border border-dashed border-paper-400 text-ink-muted hover:border-ink hover:text-ink transition-all duration-300 text-[10px] tracking-widest uppercase cursor-pointer">
+          <Upload size={13} />
+          {processedTattooSrc ? "Trocar arte" : "Carregar PNG"}
+          <input type="file" accept="image/png,image/*" onChange={handleTattooUpload} className="hidden" />
+        </label>
+      </div>
 
       {/* ─── Canvas ──────────────────────────────────────────────── */}
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-lg border border-neutral-300 bg-neutral-100 touch-none"
-        style={{
-          aspectRatio: String(
-            stageSize.width / (stageSize.height || 1) || DEFAULT_ASPECT,
-          ),
-        }}
+        className="relative w-full overflow-hidden border border-paper-300 bg-paper-50 touch-none"
+        style={{ aspectRatio: String(stageSize.width / (stageSize.height || 1) || DEFAULT_ASPECT) }}
       >
         {stageSize.width > 0 && (
           <Stage
@@ -310,8 +297,8 @@ export default function TattooSimulator() {
             onMouseDown={handleStagePointerDown}
             onTouchStart={handleStagePointerDown}
           >
-            {/* Uma única Layer: o multiply só funde a tinta contra a pele
-                quando ambas estão no mesmo canvas (ver commit anterior). */}
+            {/* Uma única Layer: multiply funde tinta na pele apenas quando
+                ambas as imagens estão no mesmo canvas Konva. */}
             <Layer>
               {bodySrc && <BodyPhoto src={bodySrc} size={stageSize} />}
               {processedTattooSrc && (
@@ -330,7 +317,7 @@ export default function TattooSimulator() {
 
         {!bodySrc && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-xs uppercase tracking-widest text-neutral-400">
+            <p className="text-[10px] uppercase tracking-widest text-ink-faint">
               Tire uma foto ou escolha da galeria
             </p>
           </div>
@@ -338,7 +325,7 @@ export default function TattooSimulator() {
       </div>
 
       {/* ─── Slider de opacidade ─────────────────────────────────── */}
-      <label className="flex items-center gap-3 text-xs font-medium text-neutral-700">
+      <label className="flex items-center gap-3 text-[9px] tracking-widest uppercase text-ink-faint">
         <span className="whitespace-nowrap">Opacidade</span>
         <input
           type="range"
@@ -350,7 +337,7 @@ export default function TattooSimulator() {
           disabled={!processedTattooSrc}
           className="flex-1 accent-neutral-900 disabled:opacity-40"
         />
-        <span className="w-10 text-right tabular-nums text-neutral-500">
+        <span className="w-10 text-right tabular-nums text-ink-muted">
           {Math.round(opacity * 100)}%
         </span>
       </label>
@@ -359,13 +346,13 @@ export default function TattooSimulator() {
       <button
         onClick={handleDownload}
         disabled={!canDownload || isExporting}
-        className="flex items-center justify-center gap-2 w-full py-3 border border-neutral-900 bg-neutral-900 text-white text-xs tracking-widest uppercase transition-opacity disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-neutral-700"
+        className="btn-primary w-full justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <Download size={13} />
         {isExporting ? "Gerando…" : "Baixar foto"}
       </button>
 
-      <p className="text-[11px] leading-relaxed text-neutral-400">
+      <p className="text-[9px] text-ink-faint leading-relaxed">
         Toque na arte para girar e redimensionar. Toque fora para concluir.
         Nada é enviado a servidores — 100% local.
       </p>
