@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Raleway } from "next/font/google";
 import "./globals.css";
+import Analytics from "@/components/ui/Analytics";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -83,6 +84,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <Analytics />
       </head>
       <body className="bg-paper-200 text-ink font-sans antialiased">{children}</body>
     </html>
