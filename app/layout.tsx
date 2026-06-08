@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Playfair_Display, Raleway } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/ui/Analytics";
+import GrainOverlay from "@/components/ui/GrainOverlay";
+import CustomCursor from "@/components/ui/CustomCursor";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -86,7 +88,11 @@ export default function RootLayout({
         />
         <Analytics />
       </head>
-      <body className="bg-paper-200 text-ink font-sans antialiased">{children}</body>
+      <body className="bg-paper-200 text-ink font-sans antialiased">
+        {children}
+        <GrainOverlay />
+        <CustomCursor />
+      </body>
     </html>
   );
 }

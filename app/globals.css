@@ -35,6 +35,43 @@
   ::-webkit-scrollbar-track { background: #ece6d9; }
   ::-webkit-scrollbar-thumb { background: #aea490; border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: #7a5c38; }
+
+  /* Custom cursor — hide the native pointer only on fine-pointer devices,
+     and only once the JS cursor has confirmed it can take over. */
+  .custom-cursor-active,
+  .custom-cursor-active * {
+    cursor: none !important;
+  }
+}
+
+@layer utilities {
+  /* Film-grain overlay — fixed, non-interactive, sits above the page. */
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    animation: grain-shift 0.7s steps(1) infinite;
+  }
+
+  @keyframes grain-shift {
+    0%   { background-position: 0 0; }
+    20%  { background-position: -60px 30px; }
+    40%  { background-position: 40px -50px; }
+    60%  { background-position: -30px -40px; }
+    80%  { background-position: 50px 40px; }
+    100% { background-position: 0 0; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay {
+    animation: none;
+  }
 }
 
 @layer components {

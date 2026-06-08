@@ -3,8 +3,9 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ARTIST } from "@/lib/data";
+import ScrambleText from "@/components/ui/ScrambleText";
 
-const HERO_BG = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/portfolio/dante.jpg`;
+const HERO_BG = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/portfolio/hero.jpg`;
 
 export default function Hero() {
   const ref = useRef<HTMLDivElement>(null);
@@ -72,13 +73,13 @@ export default function Hero() {
             className="font-serif leading-[0.88] tracking-tight text-paper-100"
             style={{ fontSize: "clamp(3.8rem, 10vw, 9rem)", fontWeight: 700 }}
           >
-            Arte
-            <br />
-            <span className="font-light italic text-paper-300" style={{ fontWeight: 300 }}>
-              gravada
-            </span>
-            <br />
-            para sempre.
+            <ScrambleText text="Arte" delay={500} className="block" />
+            <ScrambleText
+              text="gravada"
+              delay={750}
+              className="block font-light italic text-paper-300"
+            />
+            <ScrambleText text="para sempre." delay={1000} className="block" />
           </motion.h1>
 
           <motion.div
