@@ -7,9 +7,6 @@ import ScrambleText from "@/components/ui/ScrambleText";
 
 const HERO_BG = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/portfolio/hero.jpg`;
 
-// Monolith depth in px — the physical thickness of the slab
-const DEPTH = 36;
-
 export default function Hero() {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -17,136 +14,108 @@ export default function Hero() {
     offset: ["start start", "end start"],
   });
 
-  // Y-axis rotation: the monolith slowly turns as you scroll
-  const rotateYRaw = useTransform(scrollYProgress, [0, 1], [-8, 55]);
-  const rotateY = useSpring(rotateYRaw, { damping: 20, stiffness: 45, mass: 0.8 });
+  // Monolith rotates from nearly-flat to clearly-turned as you scroll
+  const rotateYRaw = useTransform(scrollYProgress, [0, 1], [-14, 62]);
+  const rotateY = useSpring(rotateYRaw, { damping: 18, stiffness: 40, mass: 1 });
 
-  // Subtle X tilt for extra depth illusion
-  const rotateXRaw = useTransform(scrollYProgress, [0, 1], [3, -6]);
-  const rotateX = useSpring(rotateXRaw, { damping: 20, stiffness: 45, mass: 0.8 });
+  const rotateXRaw = useTransform(scrollYProgress, [0, 1], [4, -8]);
+  const rotateX = useSpring(rotateXRaw, { damping: 18, stiffness: 40, mass: 1 });
 
-  // Monolith rises slightly as it turns
-  const slabYRaw = useTransform(scrollYProgress, [0, 1], [0, -60]);
-  const slabY = useSpring(slabYRaw, { damping: 20, stiffness: 45, mass: 0.8 });
+  const slabYRaw = useTransform(scrollYProgress, [0, 1], [0, -90]);
+  const slabY = useSpring(slabYRaw, { damping: 18, stiffness: 40, mass: 1 });
 
-  // Text fades, monolith stays
-  const textOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
 
   return (
-    // 230vh: sticky scene stays for more than 2 full screens of scrolling
-    <section ref={ref} id="hero" className="relative bg-[#080808]" style={{ minHeight: "230vh" }}>
-      <div className="sticky top-0 h-screen" style={{ perspective: "1100px", perspectiveOrigin: "52% 44%" }}>
+    <section ref={ref} id="hero" className="relative" style={{ minHeight: "240vh", background: "#0c0b09" }}>
+      <div
+        className="sticky top-0 h-screen"
+        style={{ perspective: "900px", perspectiveOrigin: "50% 42%" }}
+      >
 
-        {/* ── MONOLITH ─────────────────────────────────────────────── */}
-        {/*
-          A genuine CSS 3D cuboid. Front face = statue photo.
-          Left / right faces = near-black strips that become visible
-          as the slab rotates — this is what makes it feel 3D.
-        */}
+        {/* ── MONOLITH SLAB ─────────────────────────────────────── */}
         <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2 }}>
           <motion.div
             style={{
               rotateY,
               rotateX,
               y: slabY,
-              transformStyle: "preserve-3d",
-              // Monolith proportions: narrow & very tall (roughly 1 : 2.8)
-              width: "clamp(180px, 24vw, 400px)",
-              height: "clamp(440px, 82vh, 980px)",
+              // Monolith: very tall, narrow — 1:3 ratio
+              width: "clamp(200px, 26vw, 440px)",
+              height: "clamp(500px, 88vh, 1050px)",
               position: "relative",
+              boxShadow: "0 0 0 1px rgba(255,248,230,0.06), 0 60px 180px rgba(0,0,0,0.98), -60px 0 120px rgba(0,0,0,0.6)",
             }}
           >
-            {/* FRONT FACE — statue photo */}
+            {/* Statue photo — front face */}
             <img
               src={HERO_BG}
               alt=""
               aria-hidden
               className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: "center 10%" }}
+            />
+
+            {/* Dark tint that strengthens on the edges — simulates lighting falloff */}
+            <div
+              className="absolute inset-0"
               style={{
-                objectPosition: "center 12%",
-                transform: `translateZ(${DEPTH / 2}px)`,
-                backfaceVisibility: "hidden",
+                background: "linear-gradient(to right, rgba(0,0,0,0.45) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.3) 100%)",
+                pointerEvents: "none",
               }}
             />
 
-            {/* RIGHT FACE — dark stone edge, visible when turning left */}
+            {/* Right edge — dark stone face revealed as slab turns */}
             <div
               style={{
                 position: "absolute",
-                top: 0,
-                right: 0,
-                width: `${DEPTH}px`,
-                height: "100%",
-                background: "linear-gradient(to right, #1a1710, #0a0906)",
-                transform: `rotateY(90deg) translateZ(0px)`,
+                top: 0, bottom: 0, right: 0,
+                width: "40px",
+                background: "linear-gradient(90deg, #1c1813 0%, #080604 100%)",
                 transformOrigin: "right center",
-                backfaceVisibility: "hidden",
+                transform: "rotateY(90deg)",
               }}
             />
 
-            {/* LEFT FACE — dark stone edge, visible when turning right */}
+            {/* Left edge — revealed when slab turns toward viewer */}
             <div
               style={{
                 position: "absolute",
-                top: 0,
-                left: 0,
-                width: `${DEPTH}px`,
-                height: "100%",
-                background: "linear-gradient(to left, #1a1710, #0a0906)",
-                transform: `rotateY(-90deg) translateZ(0px)`,
+                top: 0, bottom: 0, left: 0,
+                width: "40px",
+                background: "linear-gradient(-90deg, #1c1813 0%, #080604 100%)",
                 transformOrigin: "left center",
-                backfaceVisibility: "hidden",
+                transform: "rotateY(-90deg)",
               }}
             />
 
-            {/* BACK FACE — pure dark if it ever comes into view */}
+            {/* Subtle rim highlight on top edge */}
             <div
               style={{
                 position: "absolute",
-                inset: 0,
-                background: "#060504",
-                transform: `rotateY(180deg) translateZ(${DEPTH / 2}px)`,
-                backfaceVisibility: "hidden",
-              }}
-            />
-
-            {/* Faint rim light on the slab — top edge glow */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: "2px",
-                background: "rgba(255,248,235,0.18)",
-                transform: `translateZ(${DEPTH / 2 + 1}px)`,
+                top: 0, left: "10%", right: "10%",
+                height: "1px",
+                background: "rgba(255,248,230,0.2)",
+                pointerEvents: "none",
               }}
             />
           </motion.div>
         </div>
 
-        {/* Atmospheric vignette — pools of darkness around the monolith */}
+        {/* Vignette — darkens corners but keeps center open for the slab */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 3,
-            background: "radial-gradient(ellipse 70% 60% at 52% 48%, transparent 30%, #080808 100%)",
+            background: "radial-gradient(ellipse 80% 70% at 50% 48%, transparent 35%, #0c0b09 100%)",
           }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             zIndex: 3,
-            background: "linear-gradient(to bottom, #080808 0%, transparent 15%, transparent 75%, #080808 100%)",
-          }}
-        />
-        {/* Left gradient keeps text legible on mobile */}
-        <div
-          className="absolute inset-0 pointer-events-none lg:hidden"
-          style={{
-            zIndex: 3,
-            background: "linear-gradient(to bottom, rgba(8,8,8,0.7) 60%, transparent)",
+            background: "linear-gradient(to bottom, #0c0b09 0%, transparent 12%, transparent 80%, #0c0b09 100%)",
           }}
         />
 
@@ -160,7 +129,7 @@ export default function Hero() {
             className="font-serif text-paper-100 leading-none"
             style={{
               fontSize: "clamp(6rem, 18vw, 18rem)",
-              opacity: 0.025,
+              opacity: 0.03,
               letterSpacing: "0.06em",
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
@@ -170,18 +139,13 @@ export default function Hero() {
           </p>
         </div>
 
-        {/* ── TEXT CONTENT ─────────────────────────────────────────── */}
+        {/* ── TEXT CONTENT ──────────────────────────────────────── */}
         <motion.div
-          style={{ y: textY, opacity: textOpacity }}
+          style={{ zIndex: 10, y: textY, opacity: textOpacity }}
           className="absolute inset-0 flex items-end pb-20 lg:pb-28"
-          aria-label="Hero content"
-          role="region"
         >
-          <div
-            className="w-full max-w-7xl mx-auto px-6 lg:px-16"
-            style={{ position: "relative", zIndex: 10 }}
-          >
-            <div className="max-w-[480px]">
+          <div className="w-full max-w-7xl mx-auto px-6 lg:px-16">
+            <div className="max-w-[460px]">
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -199,11 +163,7 @@ export default function Hero() {
                 style={{ fontSize: "clamp(3.8rem, 10vw, 9rem)", fontWeight: 700 }}
               >
                 <ScrambleText text="Arte" delay={500} className="block" />
-                <ScrambleText
-                  text="gravada"
-                  delay={750}
-                  className="block font-light italic text-paper-300"
-                />
+                <ScrambleText text="gravada" delay={750} className="block font-light italic text-paper-300" />
                 <ScrambleText text="para sempre." delay={1000} className="block" />
               </motion.h1>
 
@@ -238,9 +198,7 @@ export default function Hero() {
                 transition={{ duration: 0.7, delay: 1.3 }}
                 className="flex flex-wrap gap-3"
               >
-                <a href="#simulador" className="btn-primary">
-                  Simulador Virtual
-                </a>
+                <a href="#simulador" className="btn-primary">Simulador Virtual</a>
                 <a
                   href="#portfolio"
                   className="relative inline-flex items-center gap-2 px-8 py-3.5 border border-paper-700 text-paper-300 font-sans font-medium tracking-widest text-[10px] uppercase transition-all duration-300 hover:border-paper-400 hover:text-paper-100"
@@ -253,15 +211,9 @@ export default function Hero() {
         </motion.div>
 
         {/* Right vertical label */}
-        <div
-          className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center gap-3"
-          style={{ zIndex: 10 }}
-        >
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:flex flex-col items-center gap-3" style={{ zIndex: 10 }}>
           <div className="w-px h-12 bg-paper-700" />
-          <p
-            className="text-paper-700 text-[8px] tracking-[0.4em] uppercase"
-            style={{ writingMode: "vertical-rl" }}
-          >
+          <p className="text-paper-700 text-[8px] tracking-[0.4em] uppercase" style={{ writingMode: "vertical-rl" }}>
             {ARTIST.handle}
           </p>
           <div className="w-px h-12 bg-paper-700" />
